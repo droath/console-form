@@ -2,6 +2,7 @@
 
 namespace Droath\ConsoleForm;
 
+use Droath\ConsoleForm\Exception\FormException;
 use Droath\ConsoleForm\Field\FieldInterface;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
@@ -17,7 +18,7 @@ class Form
      *
      * @var array
      */
-    protected $fields;
+    protected $fields = [];
 
     /**
      * Add multiple fields to form.
@@ -86,14 +87,17 @@ class Form
             $field_name = $field->getName();
 
             if ($input->isInteractive()) {
-                $value = $helper->ask($input, $output, $field->asQuestion());
+                try {
+                    $value = $helper->ask($input, $output, $field->asQuestion());
 
-                $results[$field_name] = [];
-
-                if (!$field->hasProcess()) {
-                    $results[$field_name] = $value;
-                } else {
-                    $field->onProcess($value, $results[$field_name]);
+                    if ($field->hasProcess()) {
+                        $results[$field_name] = null;
+                        $field->onProcess($value, $results[$field_name]);
+                    } else {
+                        $results[$field_name] = $field->formattedValue($value);
+                    }
+                } catch (\Exception $e) {
+                    throw new FormException(trim($e->getMessage()));
                 }
             }
         }
