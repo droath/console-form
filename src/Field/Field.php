@@ -59,6 +59,13 @@ abstract class Field
     protected $maxAttempt;
 
     /**
+     * Field normalizer.
+     *
+     * @var callable
+     */
+    protected $normalizer;
+
+    /**
      * Field conditions.
      *
      * @var array
@@ -175,6 +182,19 @@ abstract class Field
     public function setValidation(callable $function)
     {
         $this->validation[] = $function;
+
+        return $this;
+    }
+
+    /**
+     * Set field normalizer.
+     *
+     * @param callable $function
+     *   A callback function.
+     */
+    public function setNormalizer(callable $function)
+    {
+        $this->normalizer = $function;
 
         return $this;
     }
@@ -320,6 +340,15 @@ abstract class Field
 
             return $answer;
         });
+
+        // Set question normalizer based on the field normalizer. If a default
+        // normalizer is being set from the question class then setting the
+        // normalizer will trump it's execution, as only one normalizer can be
+        // set per question instance.
+        if (isset($this->normalizer)
+            && is_callable($this->normalizer)) {
+            $instance->setNormalizer($this->normalizer);
+        }
 
         return $instance;
     }
