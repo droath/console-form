@@ -293,10 +293,10 @@ abstract class Field
      *
      * @param string $value
      *   The field value.
-     * @param array &$result
-     *   The field result array.
+     * @param string &$result
+     *   The field result.
      */
-    public function onProcess($value, array &$result)
+    public function onProcess($value, &$result)
     {
         call_user_func_array($this->process, [$value, &$result]);
     }
