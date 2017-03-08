@@ -325,6 +325,20 @@ abstract class Field
     }
 
     /**
+     * Field formatted value.
+     *
+     * @param string $value
+     *   User inputted field value.
+     *
+     * @return mixed
+     *   The formatted value to output.
+     */
+    public function formattedValue($value)
+    {
+        return $value;
+    }
+
+    /**
      * Field formatted label.
      *
      * @return string

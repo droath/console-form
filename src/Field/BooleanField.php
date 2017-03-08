@@ -60,6 +60,14 @@ class BooleanField extends Field implements FieldInterface
     }
 
     /**
+     * Override \Droath\ConsoleForm\Field::formattedValue.
+     */
+    public function formattedValue($value)
+    {
+        return $value === TRUE ? 'true' : 'false';
+    }
+
+    /**
      * Override \Droath\ConsoleForm\Field::formattedLabel.
      */
     protected function formattedLabel()
