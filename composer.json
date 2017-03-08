@@ -1,0 +1,24 @@
+{
+    "name": "droath/console-form",
+    "description": "Symfony console form helper.",
+    "keywords": ["console", "form"],
+    "type": "library",
+    "minimum-stability": "dev",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Travis Tomka",
+            "email": "underoathosx@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.4",
+        "symfony/console": "^2.8 | ^3.0",
+        "symfony/finder": "^2.8 | ^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Droath\\ConsoleForm\\": "/src"
+        }
+    }
+}
