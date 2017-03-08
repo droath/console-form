@@ -12,7 +12,7 @@ class SelectField extends Field implements FieldInterface
      *
      * @var array
      */
-    protected $options;
+    protected $options = [];
 
     /**
      * {@inheritdoc}
