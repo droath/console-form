@@ -1,5 +1,7 @@
 # Console Form
 
+[![Build Status](https://travis-ci.org/droath/console-form.svg?branch=master)](https://travis-ci.org/droath/console-form)
+
 A simple form solution when using the Symfony console component.
 
 There are two ways forms can be created, one is using the standalone method which usually takes place in the command ***execute*** method.
