@@ -92,8 +92,7 @@ class Form
 
                     if ($field->hasSubform()) {
                         $subform = new static();
-                        $form = $field
-                            ->onSubformProcess($subform, $value);
+                        $field->onSubformProcess($subform, $value);
 
                         $results[$field_name] = $subform->process($input, $output, $helper);
                     } else {
