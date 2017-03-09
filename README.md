@@ -223,34 +223,24 @@ The setCondition() method allows a field to be shown based on what value was pre
 The "More options for 7.x version" text field will only be shown if the 7.x version was selected in the previous question.
 
 
-### Process
+### Subform
 
-The setProcess() method requires a callback function to be set, which can be an anonymous function or any valid PHP callable. The process function is invoked during the form process lifecycle.
+The setSubform() method requires a callback function to be set, which can be an anonymous function or any valid PHP callable. The subform function is invoked during the original form process lifecycle.
 
-The callable function is given two arguments, first is the inputed value; the other is the result array. The result array can be set to an alternative value based on a more complex structure.
-
-Below is an example of the process callback which is being used to support subforms.
+The subform callable is given two arguments, the first argument is the subform instance and the second is the inputed value. The callable doesn't need to return any data. Also, the original form process takes care of processing the subform.
 
 ```php
 <?php
 ...
 
     $form->addFields([
-        (new TextField('project', 'Project name'))
-            ->setDefault('Demo Project'),
-        (new SelectField('version', 'Project Version'))
-            ->setOptions(['7.x', '8.x'])
-            ->setDefault('8.x'),
-        (new BooleanField('host', 'Setup host'))
-            ->setProcess(function ($value, &$result) use ($input, $output) {
-                if ($value == 1) {
-                    $form = (new Form())
-                        ->addFields([
-                            new TextField('url', 'Host URL'),
-                            new BooleanField('on_startup', 'Launch on startup'),
-                        ]);
-                    $helper = $this->getHelper('question');
-                    $result = $form->process($input, $output, $helper);
+        (new BooleanField('questions', 'Ask questions?'))
+            ->setSubform(function ($subform, $value) {
+                if ($value === true) {
+                    $subform->addFields([
+                        (new TextField('how_old', 'How old are you?')),
+                        (new TextField('location', 'Where do you live?')),
+                    ]);
                 }
             }),
     ]);
@@ -259,7 +249,3 @@ Below is an example of the process callback which is being used to support subfo
     $results = $form->process($input, $output, $helper);
 
 ```
-
-As you can see the host boolean field doesn't really need to collect any data, it's only needed to determine if more form options should be collected. The results returned from the subform are saved back into the $result variable, which is passed in by reference.
-
-

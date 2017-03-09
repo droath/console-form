@@ -68,9 +68,7 @@ class FormTest extends TestCase
             'Steve Jobs',
         ]);
 
-        $results = $this->form->process(
-            $this->input, $this->output, $helper
-        );
+        $results = $this->form->process($this->input, $this->output, $helper);
 
         $this->assertContains('Steve Jobs', $results['name']);
     }
@@ -87,9 +85,7 @@ class FormTest extends TestCase
             'no',
         ]);
 
-        $results = $this->form->process(
-            $this->input, $this->output, $helper
-        );
+        $results = $this->form->process($this->input, $this->output, $helper);
 
         $this->assertEquals('true', $results['like_your_job']);
         $this->assertEquals('false', $results['like_your_location']);
@@ -106,9 +102,7 @@ class FormTest extends TestCase
             'blue',
         ]);
 
-        $results = $this->form->process(
-            $this->input, $this->output, $helper
-        );
+        $results = $this->form->process($this->input, $this->output, $helper);
 
         $this->assertEquals('blue', $results['favorite_color']);
     }
@@ -126,9 +120,7 @@ class FormTest extends TestCase
             'blue',
         ]);
 
-        $results = $this->form->process(
-            $this->input, $this->output, $helper
-        );
+        $this->form->process($this->input, $this->output, $helper);
 
         $this->fail("Form exception should've been thrown.");
     }
@@ -146,9 +138,7 @@ class FormTest extends TestCase
         $helper = $this->getHelperSet()->get('question');
         $helper->setInputStream($this->getInputStream("\n"));
 
-        $results = $this->form->process(
-            $this->input, $this->output, $helper
-        );
+        $this->form->process($this->input, $this->output, $helper);
 
         $this->fail("Form exception should've been thrown.");
     }
@@ -167,9 +157,7 @@ class FormTest extends TestCase
         $helper = $this->getHelperSet()->get('question');
         $helper->setInputStream($this->getInputStream("\n\n\n"));
 
-        $results = $this->form->process(
-            $this->input, $this->output, $helper
-        );
+        $results = $this->form->process($this->input, $this->output, $helper);
 
         $this->assertEquals('false', $results['happiness']);
         $this->assertEquals('green', $results['favorite_color']);
@@ -196,28 +184,32 @@ class FormTest extends TestCase
         $this->assertEquals('hacker-box', $results['project_name']);
     }
 
-    public function testIneractiveSetProcess()
+    public function testIneractiveSetSubform()
     {
         $this->form->addFields([
-            (new TextField('project_name', 'Project Name'))
-                ->setProcess(function ($value, &$results) {
-                    $value = strtolower($value);
-                    $results = [
-                        'item_1' => $value . '_1',
-                        'item_2' => $value . '_2',
-                    ];
+            (new BooleanField('questions', 'Ask questions?'))
+                ->setSubform(function ($form, $value) {
+                    if ($value === true) {
+                        $form->addFields([
+                            (new TextField('how_old', 'How old are you?')),
+                            (new TextField('location', 'Where do you live?')),
+                        ]);
+                    }
                 }),
         ]);
 
         $helper = $this->setQuestionInputStreamFromArray([
-            'Batman',
+            'yes',
+            1000,
+            'cave',
         ]);
 
         $results = $this->form->process($this->input, $this->output, $helper);
 
-        $this->assertCount(2, $results['project_name']);
-        $this->assertEquals('batman_1', $results['project_name']['item_1']);
-        $this->assertEquals('batman_2', $results['project_name']['item_2']);
+        $this->assertCount(2, $results['questions']);
+        $this->assertEquals(1000, $results['questions']['how_old']);
+        $this->assertEquals('cave', $results['questions']['location']);
+
     }
 
     public function testIneractiveSetCondition()
@@ -233,9 +225,7 @@ class FormTest extends TestCase
             '8.x',
         ]);
 
-        $results = $this->form->process(
-            $this->input, $this->output, $helper
-        );
+        $results = $this->form->process($this->input, $this->output, $helper);
 
         $this->assertEquals('Demoooo', $results['project_name']);
         $this->assertArrayNotHasKey('project_version', $results);

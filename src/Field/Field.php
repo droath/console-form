@@ -2,6 +2,7 @@
 
 namespace Droath\ConsoleForm\Field;
 
+use Droath\ConsoleForm\Form;
 use Symfony\Component\Console\Question\Question;
 
 /**
@@ -38,11 +39,11 @@ abstract class Field
     protected $hidden;
 
     /**
-     * Field process callback.
+     * Field subform callback.
      *
      * @var callable
      */
-    protected $process;
+    protected $subform;
 
     /**
      * Field required flag.
@@ -256,49 +257,39 @@ abstract class Field
     }
 
     /**
-     * Get process callback.
-     *
-     * @return callable
-     */
-    public function getProcess()
-    {
-        return $this->process;
-    }
-
-    /**
-     * Has process callback defined.
+     * Has subform callback function.
      *
      * @return bool
      */
-    public function hasProcess()
+    public function hasSubform()
     {
-        return isset($this->process) && is_callable($this->process);
+        return isset($this->subform) && is_callable($this->subform);
     }
 
     /**
-     * Set process callback function.
+     * Set subform callback function.
      *
      * @param callable $function
      *   The function to callback.
      */
-    public function setProcess(callable $function)
+    public function setSubform(callable $function)
     {
-        $this->process = $function;
+        $this->subform = $function;
 
         return $this;
     }
 
     /**
-     * React on a field has been processed.
+     * React on a field subform being processed.
      *
-     * @param string $value
+     * @param \Droath\ConsoleForm\Form $form
+     *   The form object.
+     * @param string value
      *   The field value.
-     * @param string &$result
-     *   The field result.
      */
-    public function onProcess($value, &$result)
+    public function onSubformProcess(Form $form, $value)
     {
-        call_user_func_array($this->process, [$value, &$result]);
+        call_user_func_array($this->subform, [$form, $value]);
     }
 
     /**

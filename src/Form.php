@@ -90,9 +90,12 @@ class Form
                 try {
                     $value = $helper->ask($input, $output, $field->asQuestion());
 
-                    if ($field->hasProcess()) {
-                        $results[$field_name] = null;
-                        $field->onProcess($value, $results[$field_name]);
+                    if ($field->hasSubform()) {
+                        $subform = new static();
+                        $form = $field
+                            ->onSubformProcess($subform, $value);
+
+                        $results[$field_name] = $subform->process($input, $output, $helper);
                     } else {
                         $results[$field_name] = $field->formattedValue($value);
                     }
