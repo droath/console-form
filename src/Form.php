@@ -4,9 +4,10 @@ namespace Droath\ConsoleForm;
 
 use Droath\ConsoleForm\Exception\FormException;
 use Droath\ConsoleForm\Field\FieldInterface;
-use Symfony\Component\Console\Helper\QuestionHelper;
+use Symfony\Component\Console\Helper\HelperSet;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 /**
  * Define the console form class.
@@ -14,11 +15,39 @@ use Symfony\Component\Console\Output\OutputInterface;
 class Form
 {
     /**
+     * [$input description].
+     *
+     * @var [type]
+     */
+    protected $input;
+
+    /**
+     * [$output description].
+     *
+     * @var [type]
+     */
+    protected $output;
+
+    /**
      * Form fields.
      *
      * @var array
      */
     protected $fields = [];
+
+    /**
+     * Form results.
+     *
+     * @var array
+     */
+    protected $results = [];
+
+    /**
+     * [$helperSet description].
+     *
+     * @var array
+     */
+    protected $helperSet = [];
 
     /**
      * Add multiple fields to form.
@@ -64,6 +93,42 @@ class Form
     }
 
     /**
+     * Set console input.
+     *
+     * @param \Symfony\Component\Console\Input\InputInterface $input
+     */
+    public function setInput(InputInterface $input)
+    {
+        $this->input = $input;
+
+        return $this;
+    }
+
+    /**
+     * Set console output.
+     *
+     * @param \Symfony\Component\Console\Output\OutputInterface
+     */
+    public function setOutput(OutputInterface $output)
+    {
+        $this->output = $output;
+
+        return $this;
+    }
+
+    /**
+     * Set helper set.
+     *
+     * @param \Symfony\Component\Console\Helper\HelperSet $helper_set
+     */
+    public function setHelperSet(HelperSet $helper_set)
+    {
+        $this->helperSet = $helper_set;
+
+        return $this;
+    }
+
+    /**
      * Process form fields.
      *
      * @param \Symfony\Component\Console\Input\InputInterface $input
@@ -76,35 +141,97 @@ class Form
      * @return array
      *   An array of field answers.
      */
-    public function process(InputInterface $input, OutputInterface $output, QuestionHelper $helper)
+    public function process()
     {
-        $results = [];
+        if (empty($this->results)) {
+            $helper = $this->helperSet->get('question');
 
-        foreach ($this->fields as $field) {
-            if (!$this->fieldConditionMet($field, $results)) {
-                continue;
-            }
-            $field_name = $field->getName();
+            $input = $this->input;
+            $output = $this->output;
 
-            if ($input->isInteractive()) {
-                try {
-                    $value = $helper->ask($input, $output, $field->asQuestion());
+            $results = [];
+            foreach ($this->fields as $field) {
+                if (!$this->fieldConditionMet($field, $results)) {
+                    continue;
+                }
+                $field_name = $field->getName();
 
-                    if ($field->hasSubform()) {
-                        $subform = new static();
-                        $field->onSubformProcess($subform, $value);
+                if ($input->isInteractive()) {
+                    try {
+                        $value = $helper->ask($input, $output, $field->asQuestion());
 
-                        $results[$field_name] = $subform->process($input, $output, $helper);
-                    } else {
-                        $results[$field_name] = $field->formattedValue($value);
+                        if ($field->hasSubform()) {
+                            $subform = new static();
+                            $field->onSubformProcess($subform, $value);
+
+                            $results[$field_name] = $subform
+                                ->setInput($input)
+                                ->setOutput($output)
+                                ->setHelperSet($this->helperSet)
+                                ->process()
+                                ->getResults();
+                        } else {
+                            $results[$field_name] = $field->formattedValue($value);
+                        }
+                    } catch (\Exception $e) {
+                        throw new FormException(trim($e->getMessage()));
                     }
-                } catch (\Exception $e) {
-                    throw new FormException(trim($e->getMessage()));
                 }
             }
+
+            $this->results = $results;
         }
 
-        return array_filter($results);
+        return $this;
+    }
+
+    /**
+     * Save form results.
+     *
+     * @param callable $function
+     *   A callback function.
+     * @param bool $confirm_save
+     *   Determine if we should confirm form save.
+     * @param string $confirm_message
+     *   The save confirmation question.
+     */
+    public function save(
+        callable $function,
+        $confirm_save = true,
+        $confirm_message = 'Save results?'
+    ) {
+        $save = false;
+
+        $this->process();
+
+        if ($confirm_save) {
+            $question = $this->helperSet->get('question');
+            $save = $question->ask(
+                $this->input,
+                $this->output,
+                new ConfirmationQuestion(
+                    sprintf('%s [yes] ', $confirm_message)
+                )
+            );
+        }
+
+        if ($save && false !== $confirm_save) {
+            call_user_func_array($function, [$this->getResults()]);
+        }
+    }
+
+    /**
+     * Get form results.
+     *
+     * @param bool $filter_empty
+     *   Determine if form values should be filtered,
+     *
+     * @return array
+     *   An array of form results.
+     */
+    public function getResults($filter_empty = true)
+    {
+        return $filter_empty ? array_filter($this->results) : $this->results;
     }
 
     /**

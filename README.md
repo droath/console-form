@@ -122,9 +122,8 @@ class Initialize extends Command
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
-        $helper = $this->getHelper('question');
-
-        $form = $this->getHelper('form')->getForm();
+        $form = $this->getHelper('form')
+            ->getForm($input, $output);
 
         $form->addFields([
             (new TextField('project', 'Project name'))
@@ -134,7 +133,9 @@ class Initialize extends Command
                 ->setDefault('8.x'),
         ]);
 
-        $results = $form->process($input, $output, $helper);
+        $results = $form
+            ->process()
+            ->getResults();
 
         var_dump($results)
     }
@@ -173,17 +174,39 @@ class Initialize extends Command
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
-        $helper = $this->getHelper('question');
-
         $form = $this->getHelper('form')
-            ->getFormByName('project.form.setup');
+            ->getFormByName('project.form.setup', $input, $output);
 
-        $results = $form->process($input, $output, $helper);
+        $results = $form
+            ->process()
+            ->getResults();
 
         var_dump($results)
     }
 
     ...
+```
+
+### Form Save
+
+Many of times forms need to save their results to a filesystem. The form save() method displays a confirmation message asking the user to save the results (which is configurable). If input is true, then the save callable is invoked; otherwise it's disregarded.
+
+```php
+<?php
+
+...
+    $form
+        ->addFields([
+            (new TextField('project', 'Project name'))
+                ->setDefault('Demo Project'),
+            (new SelectField('version', 'Project Version'))
+                ->setOptions(['7.x', '8.x'])
+                ->setDefault('8.x'),
+        ])
+        ->save(function($results) {
+            // Save results to filesystem or remote source.
+            // Don't need to call process() as it's done inside the save method.
+        });
 ```
 
 ## Form Fields
@@ -216,8 +239,9 @@ The setCondition() method allows a field to be shown based on what value was pre
                 ->setCondition('version', '7.x'),
         ]);
 
-        $helper = $this->getHelper('question');
-        $results = $form->process($input, $output, $helper);
+    $results = $form
+        ->process()
+        ->getResults();
 ```
 
 The "More options for 7.x version" text field will only be shown if the 7.x version was selected in the previous question.
@@ -233,19 +257,21 @@ The subform callable is given two arguments, the first argument is the subform i
 <?php
 ...
 
-    $form->addFields([
-        (new BooleanField('questions', 'Ask questions?'))
-            ->setSubform(function ($subform, $value) {
-                if ($value === true) {
-                    $subform->addFields([
-                        (new TextField('how_old', 'How old are you?')),
-                        (new TextField('location', 'Where do you live?')),
-                    ]);
-                }
-            }),
-    ]);
+    $form
+        ->addFields([
+            (new BooleanField('questions', 'Ask questions?'))
+                ->setSubform(function ($subform, $value) {
+                    if ($value === true) {
+                        $subform->addFields([
+                            (new TextField('how_old', 'How old are you?')),
+                            (new TextField('location', 'Where do you live?')),
+                        ]);
+                    }
+                }),
+        ]);
 
-    $helper = $this->getHelper('question');
-    $results = $form->process($input, $output, $helper);
+        $results = $form
+            ->process()
+            ->getResults();
 
 ```

@@ -6,8 +6,8 @@ use Droath\ConsoleForm\Field\BooleanField;
 use Droath\ConsoleForm\Field\SelectField;
 use Droath\ConsoleForm\Field\TextField;
 use Droath\ConsoleForm\Form;
+use Droath\ConsoleForm\FormHelper;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Console\Helper\FormatterHelper;
 use Symfony\Component\Console\Helper\HelperSet;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -22,25 +22,14 @@ class FormTest extends TestCase
      */
     protected $form;
 
-    /**
-     * Console input.
-     *
-     * @var \Symfony\Component\Console\Input\InputInterface
-     */
-    protected $input;
-
-    /**
-     * Console output.
-     *
-     * @var \Symfony\Component\Console\Output\OutputInterface
-     */
-    protected $output;
-
     protected function setUp()
     {
-        $this->form = new Form();
-        $this->input = new ArrayInput([]);
-        $this->output = new NullOutput();
+        $form_helper = $this->getHelperSet()->get('form');
+
+        $this->form = $form_helper->getForm(
+            new ArrayInput([]),
+            new NullOutput()
+        );
     }
 
     public function testAddFields()
@@ -64,11 +53,15 @@ class FormTest extends TestCase
         $this->form->addFields([
             new TextField('name', 'Name'),
         ]);
-        $helper = $this->setQuestionInputStreamFromArray([
+
+        $helperSet = $this->getHelperSetMockWithInput([
             'Steve Jobs',
         ]);
 
-        $results = $this->form->process($this->input, $this->output, $helper);
+        $results = $this->form
+            ->setHelperSet($helperSet)
+            ->process()
+            ->getResults();
 
         $this->assertContains('Steve Jobs', $results['name']);
     }
@@ -80,12 +73,15 @@ class FormTest extends TestCase
             new BooleanField('like_your_location', 'Do you like your current location?'),
         ]);
 
-        $helper = $this->setQuestionInputStreamFromArray([
+        $helperSet = $this->getHelperSetMockWithInput([
             'yes',
             'no',
         ]);
 
-        $results = $this->form->process($this->input, $this->output, $helper);
+        $results = $this->form
+            ->setHelperSet($helperSet)
+            ->process()
+            ->getResults();
 
         $this->assertEquals('true', $results['like_your_job']);
         $this->assertEquals('false', $results['like_your_location']);
@@ -98,11 +94,14 @@ class FormTest extends TestCase
                 ->setOptions(['red', 'blue', 'green']),
         ]);
 
-        $helper = $this->setQuestionInputStreamFromArray([
+        $helperSet = $this->getHelperSetMockWithInput([
             'blue',
         ]);
 
-        $results = $this->form->process($this->input, $this->output, $helper);
+        $results = $this->form
+            ->setHelperSet($helperSet)
+            ->process()
+            ->getResults();
 
         $this->assertEquals('blue', $results['favorite_color']);
     }
@@ -116,11 +115,14 @@ class FormTest extends TestCase
             (new SelectField('favorite_color', 'Favorite color?')),
         ]);
 
-        $helper = $this->setQuestionInputStreamFromArray([
+        $helperSet = $this->getHelperSetMockWithInput([
             'blue',
         ]);
 
-        $this->form->process($this->input, $this->output, $helper);
+        $results = $this->form
+            ->setHelperSet($helperSet)
+            ->process()
+            ->getResults();
 
         $this->fail("Form exception should've been thrown.");
     }
@@ -135,10 +137,12 @@ class FormTest extends TestCase
                 ->setRequired(true),
         ]);
 
-        $helper = $this->getHelperSet()->get('question');
-        $helper->setInputStream($this->getInputStream("\n"));
+        $helperSet = $this->getHelperSetMockWithInput("\n");
 
-        $this->form->process($this->input, $this->output, $helper);
+        $results = $this->form
+            ->setHelperSet($helperSet)
+            ->process()
+            ->getResults();
 
         $this->fail("Form exception should've been thrown.");
     }
@@ -154,10 +158,13 @@ class FormTest extends TestCase
                 ->setOptions(['red', 'blue', 'green'])
                 ->setDefault('green'),
         ]);
-        $helper = $this->getHelperSet()->get('question');
-        $helper->setInputStream($this->getInputStream("\n\n\n"));
 
-        $results = $this->form->process($this->input, $this->output, $helper);
+        $helperSet = $this->getHelperSetMockWithInput("\n\n\n");
+
+        $results = $results = $this->form
+            ->setHelperSet($helperSet)
+            ->process()
+            ->getResults();
 
         $this->assertEquals('false', $results['happiness']);
         $this->assertEquals('green', $results['favorite_color']);
@@ -173,13 +180,14 @@ class FormTest extends TestCase
                 }),
         ]);
 
-        $helper = $this->setQuestionInputStreamFromArray([
+        $helperSet = $this->getHelperSetMockWithInput([
             'Hacker Box',
         ]);
 
-        $results = $this->form->process(
-            $this->input, $this->output, $helper
-        );
+        $results = $results = $this->form
+            ->setHelperSet($helperSet)
+            ->process()
+            ->getResults();
 
         $this->assertEquals('hacker-box', $results['project_name']);
     }
@@ -198,13 +206,15 @@ class FormTest extends TestCase
                 }),
         ]);
 
-        $helper = $this->setQuestionInputStreamFromArray([
-            'yes',
-            1000,
-            'cave',
-        ]);
+        $helperSet = $this->getHelperSetMockWithInput(
+            ['yes'],
+            [1000, 'cave']
+        );
 
-        $results = $this->form->process($this->input, $this->output, $helper);
+        $results = $results = $this->form
+            ->setHelperSet($helperSet)
+            ->process()
+            ->getResults();
 
         $this->assertCount(2, $results['questions']);
         $this->assertEquals(1000, $results['questions']['how_old']);
@@ -220,35 +230,125 @@ class FormTest extends TestCase
                 ->setCondition('project_name', 'Demo'),
         ]);
 
-        $helper = $this->setQuestionInputStreamFromArray([
+        $helperSet = $this->getHelperSetMockWithInput([
             'Demoooo',
             '8.x',
         ]);
 
-        $results = $this->form->process($this->input, $this->output, $helper);
+        $results = $results = $this->form
+            ->setHelperSet($helperSet)
+            ->process()
+            ->getResults();
 
         $this->assertEquals('Demoooo', $results['project_name']);
         $this->assertArrayNotHasKey('project_version', $results);
     }
 
+    public function testInterativeFormSave()
+    {
+        $this->form->addFields([
+            (new TextField('name', 'Project Name')),
+            (new TextField('version', 'Project Version')),
+        ]);
+
+        $helperSet = $this->getHelperSetMockWithInput(
+            ['Demoooo', '8.x'],
+            ['yes']
+        );
+        $data = [];
+
+        $this->form
+            ->setHelperSet($helperSet)
+            ->save(function ($results) use (&$data) {
+                $data = $results;
+            });
+
+        $this->assertEquals('Demoooo', $data['name']);
+        $this->assertEquals('8.x', $data['version']);
+    }
+
+    public function testInterativeNoFormSave()
+    {
+        $this->form->addFields([
+            (new TextField('name', 'Project Name')),
+            (new TextField('version', 'Project Version')),
+        ]);
+
+        $helperSet = $this->getHelperSetMockWithInput(
+            ['Demoooo', '8.x'],
+            ['no']
+        );
+        $data = [];
+
+        $this->form
+            ->setHelperSet($helperSet)
+            ->save(function ($results) use (&$data) {
+                $data = $results;
+            });
+
+        $this->assertEmpty($data);
+    }
+
+    public function testInterativeFormGetResults()
+    {
+        $this->form->addFields([
+            (new TextField('name', 'Project Name')),
+            (new TextField('version', 'Project Version'))
+                ->setRequired(false),
+        ]);
+
+        $helperSet = $this->getHelperSetMockWithInput([
+            'Demoooo',
+            "\n",
+        ]);
+
+        $this->form
+            ->setHelperSet($helperSet)
+            ->process();
+
+        $this->assertCount(1, $this->form->getResults());
+        $this->assertCount(2, $this->form->getResults(false));
+    }
+
     protected function getHelperSet()
     {
         return new HelperSet([
-            new FormatterHelper(),
-            new QuestionHelper(),
+            new FormHelper(),
         ]);
     }
 
-    protected function setQuestionInputStreamFromArray(array $array)
+    protected function getHelperSetMockWithInput()
     {
-        $input = implode("\n", $array);
-        $helper = $this->getHelperSet()->get('question');
+        $args = func_get_args();
 
-        $helper->setInputStream(
-            $this->getInputStream($input)
-        );
+        $helperSet = $this
+            ->getMockBuilder('\Symfony\Component\Console\Helper\HelperSet')
+            ->setMethods(['get'])
+            ->getMock();
 
-        return $helper;
+        $helperSet->expects($this->any())
+            ->method('get')
+            ->with($this->stringContains('question'))
+            ->will($this->returnCallback(function () use ($args) {
+                static $count = 0;
+
+                $input = $args[$count];
+
+                if (is_array($input)) {
+                    $input = implode("\n", $input);
+                }
+                $helper = new QuestionHelper();
+
+                $helper->setInputStream(
+                    $this->getInputStream($input)
+                );
+
+                ++$count;
+
+                return $helper;
+            }));
+
+        return $helperSet;
     }
 
     protected function getInputStream($input)
