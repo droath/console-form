@@ -64,7 +64,7 @@ class BooleanField extends Field implements FieldInterface
      */
     public function formattedValue($value)
     {
-        return $value === TRUE ? 'true' : 'false';
+        return $value === true ? 'true' : 'false';
     }
 
     /**
