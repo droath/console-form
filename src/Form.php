@@ -156,6 +156,10 @@ class Form
                 }
                 $field_name = $field->getName();
 
+                if ($field->hasFieldCallback()) {
+                    $field->onFieldCallback($results);
+                }
+
                 if ($input->isInteractive()) {
                     try {
                         $value = $helper->ask($input, $output, $field->asQuestion());

@@ -246,6 +246,37 @@ The setCondition() method allows a field to be shown based on what value was pre
 
 The "More options for 7.x version" text field will only be shown if the 7.x version was selected in the previous question.
 
+### Field Callback
+
+The setFieldCallback() method requires a single callback function, which can be any valid PHP callable. The callback will be invoked during the form process lifecycle. The field callback receives two arguments, the first argument is the field instance. The second is an array of results for all previous questions.
+
+Now you can set additional methods for a given field instance based on the results for a previous question(s). As you can see in the example below the select options are added based on the results retrieved from the "Project Name" text field.
+
+```php
+<?php
+...
+
+    $form
+        ->addFields([
+            (new TextField('name', 'Project Name')),
+            (new SelectField('version', 'Project Version'))
+                ->setFieldCallback(function ($field, $results) {
+                    if ($results['name'] === 'My Project') {
+                        $field->setOptions([
+                            '7' => '7x',
+                            '8' => '8x'
+                        ]);
+                    } else {
+                        $field->setOptions([
+                            '11' => '11x',
+                            '12' => '12x'
+                        ]);
+                    }
+                }),
+        ]);
+
+```
+
 
 ### Subform
 

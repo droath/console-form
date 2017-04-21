@@ -3,6 +3,7 @@
 namespace Droath\ConsoleForm\Field;
 
 use Droath\ConsoleForm\Form;
+use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Question\Question;
 
 /**
@@ -79,6 +80,13 @@ abstract class Field
      * @var array
      */
     protected $validation = [];
+
+    /**
+     * Field callback.
+     *
+     * @var callable
+     */
+    protected $fieldCallback;
 
     /**
      * Field constructor.
@@ -241,6 +249,29 @@ abstract class Field
     }
 
     /**
+     * Set field callback.
+     *
+     * @param callable $callback
+     *   A callable function.
+     */
+    public function setFieldCallback(callable $function)
+    {
+        $this->fieldCallback = $function;
+
+        return $this;
+    }
+
+    /**
+     * Has field callback.
+     *
+     * @return bool
+     */
+    public function hasFieldCallback()
+    {
+        return is_callable($this->fieldCallback);
+    }
+
+    /**
      * Set field conditions.
      *
      * @param string $field_name
@@ -290,6 +321,17 @@ abstract class Field
     public function onSubformProcess(Form $form, $value)
     {
         call_user_func_array($this->subform, [$form, $value]);
+    }
+
+    /**
+     * React on a field before the question class is invoked.
+     *
+     * @param array $results
+     *   The form results from previous questions.
+     */
+    public function onFieldCallback(array $results)
+    {
+        call_user_func_array($this->fieldCallback, [$this, $results]);
     }
 
     /**

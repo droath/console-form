@@ -171,7 +171,7 @@ class FormTest extends TestCase
         $this->assertEquals('Demo Project', $results['project_name']);
     }
 
-    public function testIneractiveSetNormalizer()
+    public function testInteractiveSetNormalizer()
     {
         $this->form->addFields([
             (new TextField('project_name', 'Project Name'))
@@ -192,7 +192,7 @@ class FormTest extends TestCase
         $this->assertEquals('hacker-box', $results['project_name']);
     }
 
-    public function testIneractiveSetSubform()
+    public function testInteractiveSetSubform()
     {
         $this->form->addFields([
             (new BooleanField('questions', 'Ask questions?'))
@@ -219,10 +219,9 @@ class FormTest extends TestCase
         $this->assertCount(2, $results['questions']);
         $this->assertEquals(1000, $results['questions']['how_old']);
         $this->assertEquals('cave', $results['questions']['location']);
-
     }
 
-    public function testIneractiveSetCondition()
+    public function testInteractiveSetCondition()
     {
         $this->form->addFields([
             (new TextField('project_name', 'Project Name')),
@@ -242,6 +241,40 @@ class FormTest extends TestCase
 
         $this->assertEquals('Demoooo', $results['project_name']);
         $this->assertArrayNotHasKey('project_version', $results);
+    }
+
+    public function testInteractiveSetFieldCallabck()
+    {
+        $this->form->addFields([
+            (new TextField('name', 'Project Name')),
+            (new SelectField('version', 'Project Version'))
+                ->setFieldCallback(function ($field, $results) {
+                    if ($results['name'] === 'My Project') {
+                        $field->setOptions([
+                            '7' => '7x',
+                            '8' => '8x'
+                        ]);
+                    } else {
+                        $field->setOptions([
+                            '11' => '11x',
+                            '12' => '12x'
+                        ]);
+                    }
+                }),
+        ]);
+
+        $helperSet = $this->getHelperSetMockWithInput([
+            'My Project',
+            8
+        ]);
+
+        $results = $results = $this->form
+            ->setHelperSet($helperSet)
+            ->process()
+            ->getResults();
+
+        $this->assertEquals(8, $results['version']);
+        $this->assertEquals('My Project', $results['name']);
     }
 
     public function testInterativeFormSave()
