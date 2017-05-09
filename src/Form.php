@@ -15,16 +15,16 @@ use Symfony\Component\Console\Question\ConfirmationQuestion;
 class Form
 {
     /**
-     * [$input description].
+     * Console input.
      *
-     * @var [type]
+     * @var \Symfony\Component\Console\Input\InputInterface
      */
     protected $input;
 
     /**
-     * [$output description].
+     * Console output.
      *
-     * @var [type]
+     * @var \Symfony\Component\Console\Output\OutputInterface
      */
     protected $output;
 
