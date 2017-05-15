@@ -14,7 +14,7 @@ Or by taking advantage of the auto discovery feature so you can reuse forms thro
 First, you'll need to download the console form library using composer:
 
 ```bash
-composer require droath/console-form:~0.0.2
+composer require droath/console-form
 ```
 
 Set the **\Droath\ConsoleForm\FormHelper** as a helper class within the console application HelperSet:
