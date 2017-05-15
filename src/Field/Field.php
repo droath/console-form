@@ -2,6 +2,7 @@
 
 namespace Droath\ConsoleForm\Field;
 
+use Droath\ConsoleForm\FieldDefinitionInterface;
 use Droath\ConsoleForm\Form;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Question\Question;
@@ -9,7 +10,7 @@ use Symfony\Component\Console\Question\Question;
 /**
  * Define the form field base class.
  */
-abstract class Field
+abstract class Field implements FieldDefinitionInterface
 {
     /**
      * Field name.
@@ -152,7 +153,7 @@ abstract class Field
      */
     public function setRequired($required)
     {
-        $this->required = $required;
+        $this->required = (bool) $required;
 
         return $this;
     }
@@ -209,9 +210,7 @@ abstract class Field
     }
 
     /**
-     * Get field name.
-     *
-     * @return string
+     * {@inheritdoc}
      */
     public function getName()
     {
@@ -225,7 +224,7 @@ abstract class Field
      */
     public function isRequire()
     {
-        return $this->required;
+        return (bool) $this->required;
     }
 
     /**
@@ -245,7 +244,7 @@ abstract class Field
      */
     public function hasCondition()
     {
-        return empty($this->condition);
+        return !empty($this->condition);
     }
 
     /**
@@ -280,9 +279,12 @@ abstract class Field
      * @param string $value
      *   The field value that needs to be met.
      */
-    public function setCondition($field_name, $value)
+    public function setCondition($field_name, $value, $operation = '=')
     {
-        $this->condition[$field_name] = $value;
+        $this->condition[$field_name] = [
+            'value' => $value,
+            'operation' => $operation
+        ];
 
         return $this;
     }

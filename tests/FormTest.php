@@ -2,6 +2,7 @@
 
 namespace Droath\ConsoleForm\Tests;
 
+use Droath\ConsoleForm\FieldGroup;
 use Droath\ConsoleForm\Field\BooleanField;
 use Droath\ConsoleForm\Field\SelectField;
 use Droath\ConsoleForm\Field\TextField;
@@ -225,12 +226,15 @@ class FormTest extends TestCase
     {
         $this->form->addFields([
             (new TextField('project_name', 'Project Name')),
+            (new TextField('project_type', 'Project Type')),
             (new TextField('project_version', 'Project Version'))
-                ->setCondition('project_name', 'Demo'),
+                ->setCondition('project_name', 'Demo')
+                ->setCondition('project_type', 'php')
         ]);
 
         $helperSet = $this->getHelperSetMockWithInput([
             'Demoooo',
+            'php',
             '8.x',
         ]);
 
@@ -239,8 +243,35 @@ class FormTest extends TestCase
             ->process()
             ->getResults();
 
+        $this->assertEquals('php', $results['project_type']);
         $this->assertEquals('Demoooo', $results['project_name']);
         $this->assertArrayNotHasKey('project_version', $results);
+    }
+
+    public function testInteractiveSetConditionOperation()
+    {
+        $this->form->addFields([
+            (new TextField('project_name', 'Project Name')),
+            (new TextField('project_type', 'Project Type')),
+            (new TextField('project_version', 'Project Version'))
+                ->setCondition('project_name', 'Demo', '!=')
+                ->setCondition('project_type', 'php')
+        ]);
+
+        $helperSet = $this->getHelperSetMockWithInput([
+            'Demoooo',
+            'php',
+            '8.x',
+        ]);
+
+        $results = $results = $this->form
+            ->setHelperSet($helperSet)
+            ->process()
+            ->getResults();
+
+        $this->assertEquals('php', $results['project_type']);
+        $this->assertEquals('Demoooo', $results['project_name']);
+        $this->assertArrayHasKey('project_version', $results);
     }
 
     public function testInteractiveSetFieldCallabck()
@@ -341,6 +372,43 @@ class FormTest extends TestCase
 
         $this->assertCount(1, $this->form->getResults());
         $this->assertCount(2, $this->form->getResults(false));
+    }
+
+    public function testInterativeFieldGroup()
+    {
+        $this->form->addFields([
+            (new TextField('name', 'Project Name')),
+            (new FieldGroup('environments'))
+                ->addFields([
+                    (new TextField('ssh_label', 'SSH Label'))
+                        ->setRequired(false),
+                    (new TextField('ssh_host', 'SSH Host'))
+                        ->setRequired(false),
+                    (new Textfield('ssh_uri', 'SSH URI'))
+                        ->setRequired(false)
+                ])
+                ->setLoopUntil(function($last_result) {
+                    if (!isset($last_result['ssh_label'])) {
+                        return false;
+                    }
+                    return true;
+                })
+        ]);
+
+        $helperSet = $this->getHelperSetMockWithInput(
+            'Demoooo',
+            ['test1', 'test2', 'test3'],
+            ['test4', 'test5', 'test6'],
+            ["\n", "test7", "\n"]
+        );
+
+        $this->form
+            ->setHelperSet($helperSet)
+            ->process();
+
+        $results = $this->form->getResults();
+
+        $this->assertCount(2, $results['environments']);
     }
 
     protected function getHelperSet()

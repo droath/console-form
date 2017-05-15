@@ -3,6 +3,8 @@
 namespace Droath\ConsoleForm;
 
 use Droath\ConsoleForm\Exception\FormException;
+use Droath\ConsoleForm\FieldDefinitionInterface;
+use Droath\ConsoleForm\FieldGroup;
 use Droath\ConsoleForm\Field\FieldInterface;
 use Symfony\Component\Console\Helper\HelperSet;
 use Symfony\Component\Console\Input\InputInterface;
@@ -43,7 +45,7 @@ class Form
     protected $results = [];
 
     /**
-     * [$helperSet description].
+     * HelperSet.
      *
      * @var array
      */
@@ -58,7 +60,7 @@ class Form
     public function addFields(array $fields)
     {
         foreach ($fields as $field) {
-            if (!$field instanceof FieldInterface) {
+            if (!$field instanceof FieldDefinitionInterface) {
                 continue;
             }
 
@@ -71,10 +73,10 @@ class Form
     /**
      * Add a single field to form.
      *
-     * @param \Droath\ConsoleForm\Field\FieldInterface $field
+     * @param \Droath\ConsoleForm\FieldDefinitionInterface $field
      *   The field object.
      */
-    public function addField(FieldInterface $field)
+    public function addField(FieldDefinitionInterface $field)
     {
         $this->fields[] = $field;
 
@@ -144,46 +146,8 @@ class Form
     public function process()
     {
         if (empty($this->results)) {
-            $helper = $this->helperSet->get('question');
-
-            $input = $this->input;
-            $output = $this->output;
-
-            $results = [];
-            foreach ($this->fields as $field) {
-                if (!$this->fieldConditionMet($field, $results)) {
-                    continue;
-                }
-                $field_name = $field->getName();
-
-                if ($field->hasFieldCallback()) {
-                    $field->onFieldCallback($results);
-                }
-
-                if ($input->isInteractive()) {
-                    try {
-                        $value = $helper->ask($input, $output, $field->asQuestion());
-
-                        if ($field->hasSubform()) {
-                            $subform = new static();
-                            $field->onSubformProcess($subform, $value);
-
-                            $results[$field_name] = $subform
-                                ->setInput($input)
-                                ->setOutput($output)
-                                ->setHelperSet($this->helperSet)
-                                ->process()
-                                ->getResults();
-                        } else {
-                            $results[$field_name] = $field->formattedValue($value);
-                        }
-                    } catch (\Exception $e) {
-                        throw new FormException(trim($e->getMessage()));
-                    }
-                }
-            }
-
-            $this->results = $results;
+            $this->results = $this
+                ->processFields($this->fields);
         }
 
         return $this;
@@ -239,6 +203,87 @@ class Form
     }
 
     /**
+     * Process fields.
+     *
+     * @param array $fields
+     *   An array of fields.
+     * @param array $results
+     *   The results array on which to append inputs too.
+     *
+     * @return array
+     *   An array of the field results.
+     */
+    protected function processFields(array $fields, array $results = [])
+    {
+        $input = $this->input;
+        $output = $this->output;
+        $helper = $this->helperSet->get('question');
+
+        foreach ($fields as $field) {
+            if (!$field instanceof FieldDefinitionInterface) {
+                continue;
+            }
+            $field_name = $field->getName();
+
+            if (!$field instanceof FieldGroup) {
+                if ($field->hasCondition()
+                    && !$this->fieldConditionMet($field, $results)) {
+                    continue;
+                }
+
+                if ($field->hasFieldCallback()) {
+                    $field->onFieldCallback($results);
+                }
+
+                if ($input->isInteractive()) {
+                    try {
+                        $value = $helper->ask($input, $output, $field->asQuestion());
+
+                        if ($field->hasSubform()) {
+                            $subform = new static();
+                            $field->onSubformProcess($subform, $value);
+
+                            $results[$field_name] = $subform
+                                ->setInput($input)
+                                ->setOutput($output)
+                                ->setHelperSet($this->helperSet)
+                                ->process()
+                                ->getResults();
+                        } else {
+                            $results[$field_name] = $field->formattedValue($value);
+                        }
+                    } catch (\Exception $e) {
+                        throw new FormException(trim($e->getMessage()));
+                    }
+                }
+            }
+            else {
+                $groups = [];
+
+                do {
+                    $result = $this->processFields(
+                        $field->getGroupFields()
+                    );
+                    $continue = false;
+
+                    if ($field->hasLoopUntil()) {
+                        $continue = $field->loopUntil([$result]);
+                        if ($continue) {
+                            $groups[] = $result;
+                        }
+                    } else {
+                        $groups[] = $result;
+                    }
+                } while($continue);
+
+                $results[$field_name] = $groups;
+            }
+        }
+
+        return $results;
+    }
+
+    /**
      * Check if field condition are met.
      *
      * @param \Droath\ConsoleForm\Field\FieldInterface $field
@@ -251,15 +296,33 @@ class Form
      */
     protected function fieldConditionMet(FieldInterface $field, array $results)
     {
-        foreach ($field->getCondition() as $field_name => $value) {
+        $conditions = [];
+
+        foreach ($field->getCondition() as $field_name => $condition) {
+            $value = $condition['value'];
+            $operation = $condition['operation'];
+
             $field_value = $this->getFieldValue($field_name, $results);
 
-            if ($field_value !== $value) {
-                return false;
+            if (is_array($field_value)
+                && key_exists($field_name, $field_value)) {
+                $field_value = $field_value[$field_name];
+            }
+
+            switch ($operation) {
+                case "!=":
+                    $conditions[] = $field_value != $value;
+                    break;
+
+                case '=':
+                default:
+                    $conditions[] = $field_value == $value;
+                    break;
             }
         }
+        $conditions = array_unique($conditions);
 
-        return true;
+        return count($conditions) === 1 ? reset($conditions) : false;
     }
 
     /**

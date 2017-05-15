@@ -209,6 +209,38 @@ Many of times forms need to save their results to a filesystem. The form save() 
         });
 ```
 
+## Form Field Groups
+
+There might come a time when you need to group fields together. One of the advantages would be having the ability to collect multiple inputs for a grouping of fields. As you can see in the example below, the `setLoopUntil()` provides the result array that was last given, these values can help determine if you should stop collecting data. Return `false` to stop field group iteration, otherwise set to `true`.
+
+```php
+<?php
+...
+
+    $form->addFields([
+        (new TextField('name', 'Project Name')),
+        (new FieldGroup('environments'))
+            ->addFields([
+                (new TextField('ssh_label', 'SSH Label'))
+                    ->setRequired(false),
+                (new TextField('ssh_host', 'SSH Host'))
+                    ->setRequired(false),
+                (new Textfield('ssh_uri', 'SSH URI'))
+                    ->setRequired(false)
+            ])
+            ->setLoopUntil(function($result) {
+                if (!isset($result['ssh_label'])) {
+                    return false;
+                }
+                return true;
+            })
+    ]);
+
+    $results = $form
+        ->process()
+        ->getResults();
+```
+
 ## Form Fields
 
 There are three basic field types which are:
