@@ -256,8 +256,7 @@ class Form
                         throw new FormException(trim($e->getMessage()));
                     }
                 }
-            }
-            else {
+            } else {
                 $groups = [];
 
                 do {
@@ -274,7 +273,7 @@ class Form
                     } else {
                         $groups[] = $result;
                     }
-                } while($continue);
+                } while ($continue);
 
                 $results[$field_name] = $groups;
             }
