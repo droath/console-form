@@ -119,6 +119,41 @@ class Form
     }
 
     /**
+     * Set form results.
+     *
+     * @param array $values
+     *   An array of values, keyed by field name.
+     */
+    public function setResults(array $values)
+    {
+        foreach ($values as $field => $value) {
+            if (empty($value)) {
+                continue;
+            }
+            $this->setResult($field, $value);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Set for result.
+     *
+     * @param string $field
+     *   The field name on which to set the result.
+     * @param string $value
+     *   The field value.
+     */
+    public function setResult($field, $value)
+    {
+        if (!isset($this->results[$field])) {
+            $this->results[$field] = $value;
+        }
+
+        return $this;
+    }
+
+    /**
      * Set helper set.
      *
      * @param \Symfony\Component\Console\Helper\HelperSet $helper_set
@@ -145,10 +180,7 @@ class Form
      */
     public function process()
     {
-        if (empty($this->results)) {
-            $this->results = $this
-                ->processFields($this->fields);
-        }
+        $this->results = $this->processFields($this->fields, $this->results);
 
         return $this;
     }
@@ -224,6 +256,10 @@ class Form
                 continue;
             }
             $field_name = $field->getName();
+
+            if (isset($results[$field_name])) {
+                continue;
+            }
 
             if (!$field instanceof FieldGroup) {
                 if ($field->hasCondition()

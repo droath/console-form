@@ -49,6 +49,42 @@ class FormTest extends TestCase
         $this->assertInstanceOf('\ArrayIterator', $fields);
     }
 
+    public function testSetResults()
+    {
+        $data = [
+            'field_1' => 'value 1',
+            'field_2' => 'value 2',
+        ];
+        $form = $this->form;
+        $form->setResults($data);
+        $this->assertEquals($data, $form->getResults());
+    }
+
+    public function testFieldsAreSkipedIfValueInResults()
+    {
+        $this->form->addFields([
+            new TextField('project_name', 'Project Name'),
+            new BooleanField('happiness', 'Are you happy?')
+        ]);
+
+        $this->form->setResults([
+            'project_name' => 'Test Project'
+        ]);
+
+        $helperSet = $this->getHelperSetMockWithInput([
+            null,
+            'yes',
+        ]);
+
+        $results = $this->form
+            ->setHelperSet($helperSet)
+            ->process()
+            ->getResults();
+
+        $this->assertEquals('true', $results['happiness']);
+        $this->assertEquals('Test Project', $results['project_name']);
+    }
+
     public function testInterativeTextFieldProcess()
     {
         $this->form->addFields([
@@ -196,6 +232,7 @@ class FormTest extends TestCase
     public function testInteractiveSetSubform()
     {
         $this->form->addFields([
+            (new TextField('project_name', 'Project Name')),
             (new BooleanField('questions', 'Ask questions?'))
                 ->setSubform(function ($form, $value) {
                     if ($value === true) {
@@ -208,7 +245,7 @@ class FormTest extends TestCase
         ]);
 
         $helperSet = $this->getHelperSetMockWithInput(
-            ['yes'],
+            ['HackBox', 'yes'],
             [1000, 'cave']
         );
 
@@ -217,6 +254,7 @@ class FormTest extends TestCase
             ->process()
             ->getResults();
 
+        $this->assertEquals('HackBox', $results['project_name']);
         $this->assertCount(2, $results['questions']);
         $this->assertEquals(1000, $results['questions']['how_old']);
         $this->assertEquals('cave', $results['questions']['location']);
