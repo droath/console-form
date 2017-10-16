@@ -200,7 +200,7 @@ class Form
         $confirm_save = true,
         $confirm_message = 'Save results?'
     ) {
-        $save = false;
+        $save = true;
 
         $this->process();
 
@@ -215,7 +215,7 @@ class Form
             );
         }
 
-        if ($save && false !== $confirm_save) {
+        if ($save) {
             call_user_func_array($function, [$this->getResults()]);
         }
     }
