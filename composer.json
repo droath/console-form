@@ -1,5 +1,5 @@
 {
-    "name": "droath/console-form",
+    "name": "magdev/console-form",
     "description": "Symfony console form helper.",
     "keywords": ["console", "form"],
     "type": "library",
@@ -10,6 +10,10 @@
         {
             "name": "Travis Tomka",
             "email": "underoathosx@gmail.com"
+        },
+        {
+            "name": "Marco Grätsch",
+            "email": "magdev3.0@gmail.com"
         }
     ],
     "require-dev": {
